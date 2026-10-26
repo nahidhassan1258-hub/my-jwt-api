@@ -14,7 +14,7 @@ class TokenRequest(BaseModel):
 
 @app.get("/")
 def home():
-return {"status": "online", "message": "My JWT API is running"}
+    return {"status": "online", "message": "My JWT API is running"}
 
 @app.post("/token")
 def create_token(data: TokenRequest):
