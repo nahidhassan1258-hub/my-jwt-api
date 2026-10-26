@@ -1,19 +1,42 @@
-from flask import Flask, jsonify
+from fastapi import FastAPI
+from pydantic import BaseModel
+from jose import jwt, JWTError
 import os
+import time
 
-app = Flask(name)
+app = FastAPI(title="My JWT API")
 
-@app.route("/")
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+ALGORITHM = "HS256"
+
+class TokenRequest(BaseModel):
+user_id: str
+
+@app.get("/")
 def home():
-return jsonify({
-"status": "success",
-"message": "My JWT API is running!"
-})
+return {"status": "online", "message": "My JWT API is running"}
 
-@app.route("/health")
-def health():
-return jsonify({"status": "ok"})
+@app.post("/token")
+def create_token(data: TokenRequest):
+if not SECRET_KEY:
+return {"error": "JWT_SECRET_KEY is not configured"}
 
-if name == "main":
-port = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=port)
+payload = {
+    "sub": data.user_id,
+    "iat": int(time.time()),
+    "exp": int(time.time()) + 3600
+}
+
+token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+return {"access_token": token, "token_type": "bearer"}
+
+@app.post("/verify")
+def verify_token(token: str):
+if not SECRET_KEY:
+return {"error": "JWT_SECRET_KEY is not configured"}
+
+try:
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    return {"valid": True, "user_id": payload["sub"]}
+except JWTError:
+    return {"valid": False, "message": "Invalid or expired token"}
